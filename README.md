@@ -1,6 +1,6 @@
-# vpn-network-benchmark
+# VPN Network Benchmark
 
-Mozilla VPN network benchmark service
+Microservice for the Mozilla VPN in-app network upload benchmark.
 
 ## Endpoints
 
