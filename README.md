@@ -1,5 +1,8 @@
 # VPN Network Benchmark
 
+[![Coverage Status](https://codecov.io/gh/mozilla-services/vpn-network-benchmark/branch/main/graph/badge.svg?token=JW9B9YTOE0)](https://codecov.io/gh/mozilla-services/vpn-network-benchmark)
+[![Security audit](https://github.com/mozilla-services/vpn-network-benchmark/actions/workflows/scheduled-audit.yml/badge.svg)](https://github.com/mozilla-services/vpn-network-benchmark/actions/workflows/scheduled-audit.yml)
+
 Microservice for the Mozilla VPN in-app network upload benchmark.
 
 ## Endpoints
