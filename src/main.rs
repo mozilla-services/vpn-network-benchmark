@@ -45,7 +45,7 @@ async fn upload(req: HttpRequest, mut body: web::Payload) -> HttpResponseBuilder
             
             }
 
-            return HttpResponse::Ok();
+            HttpResponse::Ok()
         },
         _ => HttpResponse::NotFound(),
     }
