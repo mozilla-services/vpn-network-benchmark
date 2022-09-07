@@ -40,7 +40,7 @@ This service is deployed using docker containers.
 1. [Install docker](https://docs.docker.com/engine/install/)
 
 2. Build an image with:
-`docker build -t nbms:latest .`
+`docker build -t vpn-network-benchmark:latest .`
 
 3. To run, set environment variables and forward ports:
-`docker run -e HOST=0.0.0.0 -e PORT=8080 -p 8080:8080 nbms:latest`
+`docker run -e HOST=0.0.0.0 -e PORT=8080 -p 8080:8080 vpn-network-benchmark:latest`
