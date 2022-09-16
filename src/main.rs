@@ -3,14 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actix_web::{
-    App,
-    http::Method,
-    HttpRequest,
-    HttpResponse,
-    HttpResponseBuilder,
-    HttpServer,
-    middleware,
-    web
+    http::Method, middleware, web, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer,
 };
 use log::{info};
 
@@ -54,9 +47,9 @@ async fn main() -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use actix_web::dev::Service;
     use actix_web::{http, test, web, App, Error};
-    use super::*;
 
     #[actix_web::test]
     async fn test_health_get() -> Result<(), Error> {
