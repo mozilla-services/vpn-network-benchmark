@@ -12,8 +12,7 @@ use actix_web::{
     middleware,
     web
 };
-use futures::stream::StreamExt;
-use log::{error, info};
+use log::{info};
 
 async fn health(req: HttpRequest) -> HttpResponseBuilder {
     info!("Received health ping");
@@ -25,30 +24,13 @@ async fn health(req: HttpRequest) -> HttpResponseBuilder {
     }
 }
 
-async fn upload(req: HttpRequest, mut body: web::Payload) -> HttpResponseBuilder {
+async fn upload(_bytes: web::Bytes) -> HttpResponseBuilder {
     info!("Received upload request");
 
-    match *req.method() {
-        Method::GET => HttpResponse::MethodNotAllowed(),
-        Method::POST => {
-            info!("Start upload");
+    // Only ready data and do nothing with it
+    _bytes.iter().next().unwrap();
 
-            // Only read the data and do not need to do anything with them
-            while let Some(data) = body.next().await {
-                match data {
-                    Ok(_bytes) => (),
-                    Err(error) => {
-                        error!("An error occurred: {:?}", error);
-                        return HttpResponse::BadRequest();
-                    },
-                };
-            
-            }
-
-            return HttpResponse::Ok();
-        },
-        _ => HttpResponse::NotFound(),
-    }
+    HttpResponse::Ok()
 }
 
 #[actix_web::main]
@@ -57,10 +39,13 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     HttpServer::new(|| {
+        let max_payload_size = 80000000;  // 10 Megabyte
+
         App::new()
             .wrap(middleware::Logger::default())
+            .app_data(web::PayloadConfig::default().limit(max_payload_size))
             .service(web::resource("/health").to(health))
-            .service(web::resource("/upload").to(upload))
+            .service(web::resource("/upload").route(web::post().to(upload)))
     })
     .bind(("0.0.0.0", 8080))?
     .run()
