@@ -5,7 +5,7 @@
 use actix_web::{
     http::Method, middleware, web, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer,
 };
-use log::{info};
+use log::info;
 
 async fn health(req: HttpRequest) -> HttpResponseBuilder {
     info!("Received health ping");
@@ -20,7 +20,7 @@ async fn health(req: HttpRequest) -> HttpResponseBuilder {
 async fn upload(_bytes: web::Bytes) -> HttpResponseBuilder {
     info!("Received upload request");
 
-    // Only ready data and do nothing with it
+    // Only read the data and do nothing with it
     _bytes.iter().next().unwrap();
 
     HttpResponse::Ok()
@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     HttpServer::new(|| {
-        let max_payload_size = 80000000;  // 10 Megabyte
+        let max_payload_size = 80000000; // 10 Megabyte
 
         App::new()
             .wrap(middleware::Logger::default())
