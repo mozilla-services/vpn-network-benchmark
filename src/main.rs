@@ -7,6 +7,8 @@ use actix_web::{
 };
 use log::info;
 
+const MAX_PAYLOAD_SIZE: usize = 80000000; // 10 Megabyte
+
 async fn health(req: HttpRequest) -> HttpResponseBuilder {
     info!("Received health ping");
 
@@ -17,11 +19,11 @@ async fn health(req: HttpRequest) -> HttpResponseBuilder {
     }
 }
 
-async fn upload(_bytes: web::Bytes) -> HttpResponseBuilder {
+async fn upload(data: web::Bytes) -> HttpResponseBuilder {
     info!("Received upload request");
 
     // Only read the data and do nothing with it
-    _bytes.iter().next().unwrap();
+    data.iter().next();
 
     HttpResponse::Ok()
 }
@@ -32,11 +34,9 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     HttpServer::new(|| {
-        let max_payload_size = 80000000; // 10 Megabyte
-
         App::new()
             .wrap(middleware::Logger::default())
-            .app_data(web::PayloadConfig::default().limit(max_payload_size))
+            .app_data(web::PayloadConfig::default().limit(MAX_PAYLOAD_SIZE))
             .service(web::resource("/health").to(health))
             .service(web::resource("/upload").route(web::post().to(upload)))
     })
@@ -79,7 +79,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_upload_get() -> Result<(), Error> {
-        let app = App::new().route("/upload", web::get().to(upload));
+        let app = App::new().service(web::resource("/upload").route(web::post().to(upload)));
         let app = test::init_service(app).await;
 
         let req = test::TestRequest::get().uri("/upload").to_request();
@@ -105,13 +105,39 @@ mod tests {
 
     #[actix_web::test]
     async fn test_upload_put() -> Result<(), Error> {
-        let app = App::new().route("/upload", web::put().to(upload));
+        let app = App::new().service(web::resource("/upload").route(web::post().to(upload)));
         let app = test::init_service(app).await;
 
         let req = test::TestRequest::put().uri("/upload").to_request();
         let resp = app.call(req).await?;
 
-        assert_eq!(resp.status(), http::StatusCode::NOT_FOUND);
+        assert_eq!(resp.status(), http::StatusCode::METHOD_NOT_ALLOWED);
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_upload_limit() -> Result<(), Error> {
+        use bytes::{BufMut, BytesMut};
+
+        let app = App::new()
+            .app_data(web::PayloadConfig::default().limit(MAX_PAYLOAD_SIZE))
+            .service(web::resource("/upload").route(web::post().to(upload)));
+        let app = test::init_service(app).await;
+
+        let overflow_payload_size = MAX_PAYLOAD_SIZE + 1;
+        let mut buffer = BytesMut::with_capacity(overflow_payload_size);
+        while buffer.len() < overflow_payload_size {
+            buffer.put_u8(0);
+        }
+
+        let req = test::TestRequest::post()
+            .set_payload(buffer)
+            .uri("/upload")
+            .to_request();
+        let resp = app.call(req).await?;
+
+        assert_eq!(resp.status(), http::StatusCode::PAYLOAD_TOO_LARGE);
 
         Ok(())
     }

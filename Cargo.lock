@@ -735,6 +735,7 @@ name = "nbms"
 version = "1.0.0"
 dependencies = [
  "actix-web",
+ "bytes",
  "env_logger",
  "futures",
  "log",
