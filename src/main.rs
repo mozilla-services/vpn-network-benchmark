@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+extern crate dotenv;
+
+use std::env;
 use actix_web::{
     http::Method, middleware, web, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer,
 };
+use dotenv::dotenv;
 use log::info;
-
-const MAX_PAYLOAD_SIZE: usize = 80000000; // 10 Megabyte
 
 async fn health(req: HttpRequest) -> HttpResponseBuilder {
     info!("Received health ping");
@@ -30,17 +32,22 @@ async fn upload(data: web::Bytes) -> HttpResponseBuilder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().expect("Missing .env file");
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
 
+    let port: u16 = env::var("PORT").expect("PORT not found").parse().unwrap();
+
     HttpServer::new(|| {
+        let max_payload_size: usize = env::var("MAX_PAYLOAD_SIZE").expect("MAX_PAYLOAD_SIZE not found").parse().unwrap();
+
         App::new()
             .wrap(middleware::Logger::default())
-            .app_data(web::PayloadConfig::default().limit(MAX_PAYLOAD_SIZE))
+            .app_data(web::PayloadConfig::default().limit(max_payload_size))
             .service(web::resource("/health").to(health))
             .service(web::resource("/upload").route(web::post().to(upload)))
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
