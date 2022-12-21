@@ -28,10 +28,24 @@ https://www.rust-lang.org/tools/install
 2. Run the server
 `cargo run`
 
-## Run tests
+## Testing
+
+### Run tests
 
 Run the integration tests:
 `cargo test`
+
+### Test upload endpoint
+
+For testing purposes you could create a file with random data using for example [dd](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/dd.html) from the terminal. The following command creates 1 MB of data:
+```
+dd if=/dev/random of=random_data.bin bs=1M count=1
+```
+
+You can then POST data to the endpoint `/upload` with:
+```
+curl -i -X POST --data-binary @random_data.bin -H "Content-type: application/json" http://localhost:{PORT}/upload
+````
 
 ## Deployment
 
