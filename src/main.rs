@@ -11,6 +11,11 @@ use actix_web::{
 use dotenv::dotenv;
 use log::info;
 
+async fn index() -> HttpResponse {
+    let repo_link: String = env::var("REPO_LINK").expect("REPO_LINK not found").parse().unwrap();
+    HttpResponse::Ok().body(repo_link)
+}
+
 async fn health(req: HttpRequest) -> HttpResponseBuilder {
     info!("Received health ping");
 
@@ -44,6 +49,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(middleware::Logger::default())
             .app_data(web::PayloadConfig::default().limit(max_payload_size))
+            .service(web::resource("/").to(index))
             .service(web::resource("/health").to(health))
             .service(web::resource("/upload").route(web::post().to(upload)))
     })
