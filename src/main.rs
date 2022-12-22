@@ -7,7 +7,7 @@ use actix_web::{
 };
 use log::info;
 
-const MAX_PAYLOAD_SIZE: usize = 80000000; // 10 Megabyte
+const MAX_PAYLOAD_SIZE: usize = 10485760; // 10 Megabyte
 
 async fn health(req: HttpRequest) -> HttpResponseBuilder {
     info!("Received health ping");
