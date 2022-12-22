@@ -6,8 +6,16 @@ use actix_web::{
     http::Method, middleware, web, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer,
 };
 use log::info;
+use std::env;
 
-const MAX_PAYLOAD_SIZE: usize = 10485760; // 10 Megabyte
+async fn index() -> HttpResponse {
+    let repo_link: String = env::var("REPO_LINK")
+        .expect("REPO_LINK not found")
+        .parse()
+        .unwrap();
+
+    HttpResponse::Ok().body(repo_link)
+}
 
 async fn health(req: HttpRequest) -> HttpResponseBuilder {
     info!("Received health ping");
@@ -28,19 +36,41 @@ async fn upload(data: web::Bytes) -> HttpResponseBuilder {
     HttpResponse::Ok()
 }
 
+fn load_env_file() {
+    // Try to load vars from `.env` or fallback to `.env.local`
+    match dotenv::dotenv().ok() {
+        Some(_) => info!("Loading env from .env"),
+        None => {
+            let env_local = ".env.local";
+            if dotenv::from_filename(env_local).ok().is_some() {
+                info!("Loading env from {}", env_local);
+            }
+        }
+    };
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
+    load_env_file();
+
+    let port: u16 = env::var("PORT").expect("PORT not found").parse().unwrap();
 
     HttpServer::new(|| {
+        let max_payload_size: usize = env::var("MAX_PAYLOAD_SIZE")
+            .expect("MAX_PAYLOAD_SIZE not found")
+            .parse()
+            .unwrap();
+
         App::new()
             .wrap(middleware::Logger::default())
-            .app_data(web::PayloadConfig::default().limit(MAX_PAYLOAD_SIZE))
+            .app_data(web::PayloadConfig::default().limit(max_payload_size))
+            .service(web::resource("/").route(web::get().to(index)))
             .service(web::resource("/health").to(health))
             .service(web::resource("/upload").route(web::post().to(upload)))
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }
@@ -50,6 +80,32 @@ mod tests {
     use super::*;
     use actix_web::dev::Service;
     use actix_web::{http, test, web, App, Error};
+
+    #[test]
+    async fn test_load_env_file() -> Result<(), Error> {
+        load_env_file();
+
+        let port = env::var("PORT").ok();
+
+        assert!(port.is_some());
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_index() -> Result<(), Error> {
+        load_env_file();
+
+        let app = App::new().route("/", web::get().to(index));
+        let app = test::init_service(app).await;
+
+        let req = test::TestRequest::get().uri("/").to_request();
+        let resp = app.call(req).await?;
+
+        assert_eq!(resp.status(), http::StatusCode::OK);
+
+        Ok(())
+    }
 
     #[actix_web::test]
     async fn test_health_get() -> Result<(), Error> {
@@ -120,12 +176,14 @@ mod tests {
     async fn test_upload_limit() -> Result<(), Error> {
         use bytes::{BufMut, BytesMut};
 
+        let max_payload_size: usize = 1048576; // 1 MB
+
         let app = App::new()
-            .app_data(web::PayloadConfig::default().limit(MAX_PAYLOAD_SIZE))
+            .app_data(web::PayloadConfig::default().limit(max_payload_size))
             .service(web::resource("/upload").route(web::post().to(upload)));
         let app = test::init_service(app).await;
 
-        let overflow_payload_size = MAX_PAYLOAD_SIZE + 1;
+        let overflow_payload_size = max_payload_size + 1;
         let mut buffer = BytesMut::with_capacity(overflow_payload_size);
         while buffer.len() < overflow_payload_size {
             buffer.put_u8(0);
