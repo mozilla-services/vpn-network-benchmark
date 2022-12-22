@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate dotenv;
-
 use std::env;
 use actix_web::{
     http::Method, middleware, web, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer,
 };
-use dotenv::dotenv;
 use log::info;
 
 async fn index() -> HttpResponse {
-    let repo_link: String = env::var("REPO_LINK").expect("REPO_LINK not found").parse().unwrap();
+    let repo_link: String = env::var("REPO_LINK")
+        .expect("REPO_LINK not found")
+        .parse()
+        .unwrap();
+
     HttpResponse::Ok().body(repo_link)
 }
 
@@ -35,16 +36,36 @@ async fn upload(data: web::Bytes) -> HttpResponseBuilder {
     HttpResponse::Ok()
 }
 
+fn load_env_file() {
+    // Try to load environment from `.env`
+    match dotenv::dotenv().ok() {
+        Some(_) => info!("Loading env from .env"),
+        None => {
+            // Fallsback to `.env.local`
+            let env_local = ".env.local";
+            if let Some(_) = dotenv::from_filename(&env_local).ok() {
+                info!("Loading env from {}", &env_local);
+            }
+        }
+    };
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().expect("Missing .env file");
     std::env::set_var("RUST_LOG", "actix_web=info");
     env_logger::init();
+    load_env_file();
 
-    let port: u16 = env::var("PORT").expect("PORT not found").parse().unwrap();
+    let port: u16 = env::var("PORT")
+        .expect("PORT not found")
+        .parse()
+        .unwrap();
 
     HttpServer::new(|| {
-        let max_payload_size: usize = env::var("MAX_PAYLOAD_SIZE").expect("MAX_PAYLOAD_SIZE not found").parse().unwrap();
+        let max_payload_size: usize = env::var("MAX_PAYLOAD_SIZE")
+            .expect("MAX_PAYLOAD_SIZE not found")
+            .parse()
+            .unwrap();
 
         App::new()
             .wrap(middleware::Logger::default())
@@ -133,12 +154,14 @@ mod tests {
     async fn test_upload_limit() -> Result<(), Error> {
         use bytes::{BufMut, BytesMut};
 
+        let max_payload_size: usize = 1048576; // 1 MB
+
         let app = App::new()
-            .app_data(web::PayloadConfig::default().limit(MAX_PAYLOAD_SIZE))
+            .app_data(web::PayloadConfig::default().limit(max_payload_size))
             .service(web::resource("/upload").route(web::post().to(upload)));
         let app = test::init_service(app).await;
 
-        let overflow_payload_size = MAX_PAYLOAD_SIZE + 1;
+        let overflow_payload_size = max_payload_size + 1;
         let mut buffer = BytesMut::with_capacity(overflow_payload_size);
         while buffer.len() < overflow_payload_size {
             buffer.put_u8(0);

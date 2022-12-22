@@ -22,9 +22,9 @@ https://www.rust-lang.org/tools/install
 
 ## Run server
 
-1. Create a `.env` file from `.env.example`:
+1. Create a `.env` file from `.env.local` if you would like to overwrite the default variables:
 ```
-cp .env.example .env
+cp .env.local .env
 ```
 Update the environment variables as needed.
 
@@ -70,7 +70,13 @@ This service is deployed using docker containers.
 docker build -t vpn-network-benchmark:latest .
 ```
 
-3. To run, set environment variables and forward ports:
+3. To run, set environment variables using a `.env` file or setting them directly in the run command and forward ports:
 ```
-docker run -e HOST=0.0.0.0 -e PORT=8080 -p 8080:8080 vpn-network-benchmark:latest
+docker run \
+  -e HOST=0.0.0.0 \
+  -e PORT=8080 \
+  -e MAX_PAYLOAD_SIZE=10485760 \ # 10 MB
+  -e REPO_LINK=https://github.com/mozilla-services/vpn-network-benchmark \
+  -p 8080:8080 \
+  vpn-network-benchmark:latest
 ```
