@@ -43,8 +43,8 @@ fn load_env_file() {
         None => {
             // Fallsback to `.env.local`
             let env_local = ".env.local";
-            if dotenv::from_filename(&env_local).ok().is_some() {
-                info!("Loading env from {}", &env_local);
+            if dotenv::from_filename(env_local).ok().is_some() {
+                info!("Loading env from {}", env_local);
             }
         }
     };
@@ -81,6 +81,16 @@ mod tests {
     use super::*;
     use actix_web::dev::Service;
     use actix_web::{http, test, web, App, Error};
+
+    #[test]
+    async fn test_load_env_file() -> Result<(), Error> {
+        load_env_file();
+        let port = env::var("PORT").ok();
+
+        assert!(port.is_some());
+
+        Ok(())
+    }
 
     #[actix_web::test]
     async fn test_health_get() -> Result<(), Error> {
