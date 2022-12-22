@@ -7,6 +7,9 @@ Microservice for the Mozilla VPN in-app network upload benchmark.
 
 ## Endpoints
 
+`/`:
+- GET only: Returns `200` with a link to this repository
+
 `/upload`:
 - POST only: Returns `200` data is readable
 

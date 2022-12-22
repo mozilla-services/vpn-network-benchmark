@@ -37,11 +37,10 @@ async fn upload(data: web::Bytes) -> HttpResponseBuilder {
 }
 
 fn load_env_file() {
-    // Try to load environment from `.env`
+    // Try to load vars from `.env` or fallback to `.env.local`
     match dotenv::dotenv().ok() {
         Some(_) => info!("Loading env from .env"),
         None => {
-            // Fallsback to `.env.local`
             let env_local = ".env.local";
             if dotenv::from_filename(env_local).ok().is_some() {
                 info!("Loading env from {}", env_local);
@@ -67,7 +66,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(middleware::Logger::default())
             .app_data(web::PayloadConfig::default().limit(max_payload_size))
-            .service(web::resource("/").to(index))
+            .service(web::resource("/").route(web::get().to(index)))
             .service(web::resource("/health").to(health))
             .service(web::resource("/upload").route(web::post().to(upload)))
     })
@@ -85,9 +84,25 @@ mod tests {
     #[test]
     async fn test_load_env_file() -> Result<(), Error> {
         load_env_file();
+
         let port = env::var("PORT").ok();
 
         assert!(port.is_some());
+
+        Ok(())
+    }
+
+    #[actix_web::test]
+    async fn test_index() -> Result<(), Error> {
+        load_env_file();
+
+        let app = App::new().route("/", web::get().to(index));
+        let app = test::init_service(app).await;
+
+        let req = test::TestRequest::get().uri("/").to_request();
+        let resp = app.call(req).await?;
+
+        assert_eq!(resp.status(), http::StatusCode::OK);
 
         Ok(())
     }
