@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::env;
 use actix_web::{
     http::Method, middleware, web, App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer,
 };
 use log::info;
+use std::env;
 
 async fn index() -> HttpResponse {
     let repo_link: String = env::var("REPO_LINK")
@@ -43,7 +43,7 @@ fn load_env_file() {
         None => {
             // Fallsback to `.env.local`
             let env_local = ".env.local";
-            if let Some(_) = dotenv::from_filename(&env_local).ok() {
+            if dotenv::from_filename(&env_local).ok().is_some() {
                 info!("Loading env from {}", &env_local);
             }
         }
@@ -56,10 +56,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
     load_env_file();
 
-    let port: u16 = env::var("PORT")
-        .expect("PORT not found")
-        .parse()
-        .unwrap();
+    let port: u16 = env::var("PORT").expect("PORT not found").parse().unwrap();
 
     HttpServer::new(|| {
         let max_payload_size: usize = env::var("MAX_PAYLOAD_SIZE")
